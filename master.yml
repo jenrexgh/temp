@@ -1,0 +1,35 @@
+---
+- hosts: master
+  become: yes
+  tasks:
+          - name: inizialize THe cluster
+            #command: kubeadm init --pod-network-cidr=10.244.0.0/16 >> cluster_initialized.txt
+            command: kubeadm init --apiserver-advertise-address="10.244.0.100" --apiserver-cert-extra-sans="10.244.0.100" --node-name master01 --pod-network-cidr=10.244.0.0/16 >> cls-initialization.txt
+            args:
+                    chdir: $HOME
+                    creates: cluster_initialized.txt
+
+          - name: create .kube directory
+            become: yes
+            become_user: ubuntu
+            file:
+                    path: $HOME/.kube
+                    state: directory
+                    mode: 0755
+          
+          - name: copy admin.conf to user's kube config
+            copy:
+                    src: /etc/kubernetes/admin.conf
+                    dest: /home/ubuntu/.kube/config
+                    remote_src: yes
+                    owner: ubuntu
+          
+          - name: install POD networ
+            become: false
+            become_user: ubuntu
+            #            shell: kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/a70459be0084506e4ec919aa1c114638878db11b/Documentation/kube-flannel.yml >> pod_network_setup.txt
+            shell: kubectl create -f https://docs.projectcalico.org/v3.10/getting-started/kubernetes/installation/hosted/calico.yaml >> pod_network_setup.txt
+            args:
+                    chdir: $HOME
+                    creates: pod_network_setup.txt
+
